@@ -34,11 +34,11 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
         end
 
         % Force de Magnus (option 3)
-        if option == 3
-            F_magnus = S_magnus * cross(w_init, v(i,:));
-        else
+        %if option == 3
+            %F_magnus = S_magnus * cross(w_init, v(i,:));
+        %else
             F_magnus = [0, 0, 0];
-        end
+        %end
 
         % Somme des forces
         F_totale = F_grav + F_frott + F_magnus;
@@ -52,12 +52,16 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
 
         % Conditions d'arrêt (filet, table ou sol)
         if r(i+1,3) <= 0  % La balle touche le sol
+            coup = 3;
             break;
         elseif r(i+1,1) > 2.74 || r(i+1,1) < 0 % La balle est hors des limites en x
+            coup = 3;
             break;
         elseif r(i+1,2) > 1.525 || r(i+1,2) < 0 % La balle est hors des limites en y
+            coup = 3;
             break;
         elseif r(i+1,3) <= 0.1525 && r(i+1,1) >= 1.22 && r(i+1,1) <= 1.52 % La balle touche le filet
+            coup = 2;
             break;
         elseif r(i+1,3) <= 0.76 && r(i+1,1) >= 0 && r(i+1,1) <= 2.74 % La balle touche la table
             % Déterminer si le coup est réussi ou non
@@ -78,10 +82,13 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     z = r(1:i,3);                  % Positions en z
 
     % Coup raté si la balle sort ou touche le sol
+    %{
     if r(i,3) <= 0
         coup = 3; % La balle touche le sol en dehors de la table
     elseif r(i,3) <= 0.1525 && r(i,1) >= 1.22 && r(i,1) <= 1.52
         coup = 2; % La balle touche le filet
+    else
+        coup = 0;
     end
+    %}
 end
-
