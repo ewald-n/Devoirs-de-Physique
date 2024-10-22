@@ -1,71 +1,87 @@
-function [coup, vbf, ti, x, y, z] = Devoir2(option, rbi, vbi, wbi)
-    % Constantes physiques
-    g = 9.81; % gravité en m/s^2
-    mb = 2.74e-3; % masse de la balle en kg
-    Rb = 1.99e-2; % rayon de la balle en m
-
-    % Paramètres du filet et de la table
-    hz = 0.76; % hauteur de la table en m
-    Lx = 2.74; % longueur de la table en m
-    Ly = 1.525; % largeur de la table en m
-    hf = 0.1525; % hauteur du filet en m
+function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
+    % Paramètres physiques
+    g = 9.81;                      % Accélération gravitationnelle (m/s^2)
+    m_balle = 2.74e-3;             % Masse de la balle (kg)
+    r_balle = 1.99e-2;             % Rayon de la balle (m)
+    rho_air = 1.225;               % Densité de l'air (kg/m^3)
+    Cd = 0.47;                     % Coefficient de traînée (froment)
+    S_balle = pi * r_balle^2;      % Surface de la balle
+    k_visc = 0.5 * rho_air * Cd * S_balle; % Coefficient de frottement visqueux
+    S_magnus = 4/3 * pi * r_balle^3; % Coefficient de Magnus (à ajuster selon le problème)
 
     % Initialisation des variables
-    dt = 0.01; % pas de temps en secondes
-    t = 0; % temps initial
-    rb = rbi; % position initiale
-    vb = vbi; % vitesse initiale
-    omega_b = wbi; % vitesse angulaire constante
-    x = []; y = []; z = []; ti = [];
+    dt = 0.01;                     % Pas de temps (s)
+    t_max = 10;                    % Durée maximale de simulation (s)
+    t = 0:dt:t_max;                % Vecteur temps
+    n_steps = length(t);           % Nombre de pas de temps
 
-    % Boucle de simulation
-    while true
-        % Enregistrer les positions pour la trajectoire
-        x = [x; rb(1)];
-        y = [y; rb(2)];
-        z = [z; rb(3)];
-        ti = [ti; t];
+    % Vecteurs pour stocker les positions et vitesses
+    r = zeros(n_steps, 3);         % Position (x, y, z)
+    v = zeros(n_steps, 3);         % Vitesse (vx, vy, vz)
+    r(1,:) = r_init;               % Position initiale
+    v(1,:) = v_init;               % Vitesse initiale
 
-        % Calcul des forces selon l'option choisie
-        Fg = [0, 0, -mb * g]; % force gravitationnelle
-        Fv = [0, 0, 0]; % force de frottement
-        Fm = [0, 0, 0]; % force de Magnus
+    % Simulation du mouvement
+    for i = 1:n_steps-1
+        % Force gravitationnelle
+        F_grav = [0, 0, -m_balle * g];
 
+        % Force de frottement visqueux (option 2 et 3)
         if option >= 2
-            c = 0.1; % coefficient de frottement (arbitraire)
-            Fv = -c * vb; % frottement visqueux
+            F_frott = -k_visc * norm(v(i,:)) * v(i,:);
+        else
+            F_frott = [0, 0, 0];
         end
+
+        % Force de Magnus (option 3)
         if option == 3
-            lambda = 1e-4; % coefficient de Magnus (arbitraire)
-            Fm = lambda * cross(omega_b, vb); % force de Magnus
+            F_magnus = S_magnus * cross(w_init, v(i,:));
+        else
+            F_magnus = [0, 0, 0];
         end
 
-        % Accélération
-        Ftot = Fg + Fv + Fm;
-        ab = Ftot / mb;
+        % Somme des forces
+        F_totale = F_grav + F_frott + F_magnus;
 
-        % Mise à jour de la vitesse et de la position
-        vb = vb + ab * dt;
-        rb = rb + vb * dt;
-        t = t + dt;
+        % Accélération de la balle
+        a = F_totale / m_balle;
 
-        % Vérification des conditions d'arrêt
-        if rb(3) <= 0 % touche le sol
-            coup = 3; break;
-        elseif rb(3) <= hz && rb(1) >= 0 && rb(1) <= Lx && rb(2) >= 0 && rb(2) <= Ly
-            % touche la table
-            if rb(1) < Lx / 2
-                coup = 1; % côté du joueur
+        % Mise à jour de la vitesse et de la position (intégration Euler)
+        v(i+1,:) = v(i,:) + a * dt;
+        r(i+1,:) = r(i,:) + v(i,:) * dt;
+
+        % Conditions d'arrêt (filet, table ou sol)
+        if r(i+1,3) <= 0  % La balle touche le sol
+            break;
+        elseif r(i+1,1) > 2.74 || r(i+1,1) < 0 % La balle est hors des limites en x
+            break;
+        elseif r(i+1,2) > 1.525 || r(i+1,2) < 0 % La balle est hors des limites en y
+            break;
+        elseif r(i+1,3) <= 0.1525 && r(i+1,1) >= 1.22 && r(i+1,1) <= 1.52 % La balle touche le filet
+            break;
+        elseif r(i+1,3) <= 0.76 && r(i+1,1) >= 0 && r(i+1,1) <= 2.74 % La balle touche la table
+            % Déterminer si le coup est réussi ou non
+            if r(i+1,1) > 1.37
+                coup = 0; % Le coup est réussi
             else
-                coup = 0; % coup réussi
+                coup = 1; % Coup raté du côté du joueur
             end
             break;
-        elseif rb(1) == Lx / 2 && rb(3) <= hf % touche le filet
-            coup = 2; break;
         end
     end
 
     % Résultats finaux
-    vbf = vb;
+    vbf = v(i,:);                  % Vitesse finale
+    ti = t(1:i);                   % Temps jusqu'à l'arrêt
+    x = r(1:i,1);                  % Positions en x
+    y = r(1:i,2);                  % Positions en y
+    z = r(1:i,3);                  % Positions en z
+
+    % Coup raté si la balle sort ou touche le sol
+    if r(i,3) <= 0
+        coup = 3; % La balle touche le sol en dehors de la table
+    elseif r(i,3) <= 0.1525 && r(i,1) >= 1.22 && r(i,1) <= 1.52
+        coup = 2; % La balle touche le filet
+    end
 end
 
