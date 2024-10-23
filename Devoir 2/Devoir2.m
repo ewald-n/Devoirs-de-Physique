@@ -125,26 +125,54 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     end
 end
 
-% Essai 1
-rbi = [0.00, 0.50, 1.10];
-vbi = [4.00, 0.00, 0.80];
-wbi = [0.00, -70.00, 0.00];
+%appels de la fonction sur les 4 essais
+% Initialisation des paramètres pour les quatre essais
+rbi_all = {
+    [0.00, 0.50, 1.10],      % Essai 1
+    [0.00, 0.40, 1.14],      % Essai 2
+    [2.74, 0.50, 1.14],      % Essai 3
+    [0.00, 0.30, 1.00]       % Essai 4
+};
 
-% Option 1
-[coup1, vbf1, ti1, x1, y1, z1] = Devoir2(1, rbi, vbi, wbi);
+vbi_all = {
+    [4.00, 0.00, 0.80],      % Essai 1
+    [10.00, 1.00, 0.20],     % Essai 2
+    [-5.00, 0.00, 0.20],     % Essai 3
+    [10.00, -2.00, 0.20]     % Essai 4
+};
 
-% Option 2
-[coup2, vbf2, ti2, x2, y2, z2] = Devoir2(2, rbi, vbi, wbi);
+wbi_all = {
+    [0.00, -70.00, 0.00],        % Essai 1
+    [0.00, 100.00, -50.00],      % Essai 2
+    [0.00, 100.00, 0.00],        % Essai 3
+    [0.00, 10.00, -100.00]       % Essai 4
+};
 
-% Option 3
-[coup3, vbf3, ti3, x3, y3, z3] = Devoir2(3, rbi, vbi, wbi);
+options = [1, 2, 3]; % Les trois options de simulation
 
-% Affichage des résultats pour l'Option 1
-fprintf("Résultats pour l'Option 1:\n");
-fprintf("Coup: %d\n", coup1);
-fprintf('Vitesse finale (vbf1): [%.4f, %.4f, %.4f] m/s\n', vbf1);
-fprintf('Temps final (tf1): %.4f s\n', ti1(end));
-fprintf('Position finale (x, y, z): [%.4f, %.4f, %.4f] m\n\n', x1(end), y1(end), z1(end));
+types_coup = {'Coup réussi (0)', 'Coup raté du côté du joueur (1)', 'Coup raté, balle touche le filet (2)', 'Coup raté, balle sort du jeu ou touche le sol (3)'};
+
+% Boucle sur les essais
+for essai = 1:4
+    rbi = rbi_all{essai};
+    vbi = vbi_all{essai};
+    wbi = wbi_all{essai};
+
+    fprintf("=== Résultats pour l'Essai %d ===\n", essai);
+
+    % Boucle sur les options
+    for opt = options
+        [coup, vbf, ti, x, y, z] = Devoir2(opt, rbi, vbi, wbi);
+
+        fprintf('Option %d:\n', opt);
+        fprintf('  Coup: %d (%s)\n', coup, types_coup{coup+1});
+        fprintf('  Vitesse finale (vbf): [%.4f, %.4f, %.4f] m/s\n', vbf);
+        fprintf('  Temps final (tf): %.4f s\n', ti(end));
+        fprintf('  Position finale (x, y, z): [%.4f, %.4f, %.4f] m\n\n', x(end), y(end), z(end));
+
+    end
+    fprintf('\n');
+end
 
 
 
