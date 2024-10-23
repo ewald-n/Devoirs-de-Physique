@@ -2,6 +2,12 @@
 % Definir terrain
 %
 global longueur largeur hauteur hfilet lfilet dir ;
+longueur = 2.74;    % Longueur de la table en mètres
+largeur = 1.525;    % Largeur de la table en mètres
+hauteur = 0.76;     % Hauteur de la table en mètres
+hfilet = 0.1525;    % Hauteur du filet en mètres
+lfilet = 1.83;      % Largeur du filet en mètres
+dir = 1;            % Direction (peut-être une variable utilisée ailleurs)
 bandes=5/100;
 epaisseur=10/100;
 lo2=longueur/2;
@@ -67,6 +73,12 @@ Patte4C=[ xcp-epp+lo2  xcp-epp+lo2  xcp-epp+lo2  xcp-epp+lo2  xcp-epp+lo2;
 Filet=[0+lo2 0+lo2 0+lo2 0+lo2 0+lo2;
        yoff-df yoff-df yoff+largeur+df yoff+largeur+df yoff-df;
         hauteur hauteur+hfilet hauteur+hfilet hauteur hauteur];
+
+% Création d'une nouvelle figure et maintien des tracés précédents
+figure;              % Crée une nouvelle figure
+hold on;             % Permet de superposer les tracés
+
+
 fill3(LigneX1(1,:),LigneX1(2,:),LigneX1(3,:),[1 1 1]);
 fill3(LigneX2(1,:),LigneX2(2,:),LigneX2(3,:),[1 1 1]);
 fill3(LigneX3(1,:),LigneX3(2,:),LigneX3(3,:),[1 1 1]);
