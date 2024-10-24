@@ -1,4 +1,4 @@
-disp("simulation...") %octave ne permet pas de commancer un fichier avec function?
+disp("Simulation...");
 function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     % Paramètres physiques
     g = 9.8;                      % Accélération gravitationnelle (m/s^2)
@@ -36,34 +36,39 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     y = [];
     z = [];
 
-    % Simulation du mouvement
+    % Simulation du mouvement avec RK4
     for i = 1:n_steps-1
-        % Force gravitationnelle
-        F_grav = [0, 0, -m_balle * g];
+        % Calcul des coefficients k pour la position et la vitesse
 
-        % Force de frottement visqueux (option 2 et 3)
-        if option >= 2
-            F_frott = -k_visc * norm(v(i,:)) * v(i,:);
-        else
-            F_frott = [0, 0, 0];
-        end
+        % k1
+        a1 = acceleration(r(i,:), v(i,:), option, m_balle, g, k_visc, S_magnus, w_init);
+        k1_v = a1 * dt;
+        k1_r = v(i,:) * dt;
 
-        % Force de Magnus (option 3)
-        if option == 3
-            F_magnus = S_magnus * cross(w_init, v(i,:));
-        else
-            F_magnus = [0, 0, 0];
-        end
+        % k2
+        v_temp = v(i,:) + 0.5 * k1_v;
+        r_temp = r(i,:) + 0.5 * k1_r;
+        a2 = acceleration(r_temp, v_temp, option, m_balle, g, k_visc, S_magnus, w_init);
+        k2_v = a2 * dt;
+        k2_r = v_temp * dt;
 
-        % Somme des forces
-        F_totale = F_grav + F_frott + F_magnus;
+        % k3
+        v_temp = v(i,:) + 0.5 * k2_v;
+        r_temp = r(i,:) + 0.5 * k2_r;
+        a3 = acceleration(r_temp, v_temp, option, m_balle, g, k_visc, S_magnus, w_init);
+        k3_v = a3 * dt;
+        k3_r = v_temp * dt;
 
-        % Accélération de la balle
-        a = F_totale / m_balle;
+        % k4
+        v_temp = v(i,:) + k3_v;
+        r_temp = r(i,:) + k3_r;
+        a4 = acceleration(r_temp, v_temp, option, m_balle, g, k_visc, S_magnus, w_init);
+        k4_v = a4 * dt;
+        k4_r = v_temp * dt;
 
-        % Mise à jour de la vitesse et de la position (intégration d'Euler)
-        v(i+1,:) = v(i,:) + a * dt;
-        r(i+1,:) = r(i,:) + v(i,:) * dt;
+        % Mise à jour de la vitesse et de la position
+        v(i+1,:) = v(i,:) + (1/6)*(k1_v + 2*k2_v + 2*k3_v + k4_v);
+        r(i+1,:) = r(i,:) + (1/6)*(k1_r + 2*k2_r + 2*k3_r + k4_r);
 
         % Enregistrement des positions pour le tracé
         if mod(i, enregistrement_interval) == 0 || i == 1
@@ -124,6 +129,33 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
         z(compteur_enregistrement) = r(i+1,3);
     end
 end
+
+% Fonction pour calculer l'accélération
+function a = acceleration(r, v, option, m_balle, g, k_visc, S_magnus, w_init)
+    % Force gravitationnelle
+    F_grav = [0, 0, -m_balle * g];
+
+    % Force de frottement visqueux (option 2 et 3)
+    if option >= 2
+        F_frott = -k_visc * norm(v) * v;
+    else
+        F_frott = [0, 0, 0];
+    end
+
+    % Force de Magnus (option 3)
+    if option == 3
+        F_magnus = S_magnus * cross(w_init, v);
+    else
+        F_magnus = [0, 0, 0];
+    end
+
+    % Somme des forces
+    F_totale = F_grav + F_frott + F_magnus;
+
+    % Accélération de la balle
+    a = F_totale / m_balle;
+end
+
 
 %appels de la fonction sur les 4 essais
 % Initialisation des paramètres pour les quatre essais
