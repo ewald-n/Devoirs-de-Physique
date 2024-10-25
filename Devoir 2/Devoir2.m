@@ -87,15 +87,20 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
         end
 
         % Balle touche le filet
+        h_table = 0.76;    % Hauteur de la table (m)
         h_filet = 0.1525;         % Hauteur du filet (m)
+        z_filet_base = h_table;   % Position Z de la base du filet
+        z_filet_top = h_table + h_filet;  % Position Z du sommet du filet
         x_filet = 1.37;           % Position en x du filet (milieu de la table)
         l_filet = 1.83;           % Largeur du filet (m)
         y_filet_min = -0.1525;    % Le filet dépasse de chaque côté de 15.25 cm
         y_filet_max = 1.525 + 0.1525;
 
-        if r(i+1,3) - r_balle <= h_filet && abs(r(i+1,1) - x_filet) <= r_balle && ...
-           r(i+1,2) >= y_filet_min && r(i+1,2) <= y_filet_max
-            coup = 2;
+        % Vérifier si la balle est en collision avec le filet
+        if (r(i+1,1) >= x_filet - r_balle && r(i+1,1) <= x_filet + r_balle) && ...
+           (r(i+1,2) >= y_filet_min && r(i+1,2) <= y_filet_max) && ...
+           (r(i+1,3) - r_balle <= z_filet_top && r(i+1,3) + r_balle >= z_filet_base)
+            coup = 2; % La balle a touché le filet
             break;
         end
 
@@ -104,7 +109,7 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
         if r(i+1,3) - r_balle <= h_table && r(i+1,1) >= 0 && r(i+1,1) <= 2.74 && ...
            r(i+1,2) >= 0 && r(i+1,2) <= 1.525
             % Déterminer si le coup est réussi ou non
-            if r(i+1,1) > x_filet
+            if (r(i+1,1) > x_filet && r_init(1) < x_filet) || (r(i+1,1) < x_filet && r_init(1) > x_filet)
                 coup = 0; % Le coup est réussi (balle atterrit du côté adverse)
             else
                 coup = 1; % Coup raté (balle atterrit du côté du joueur)
