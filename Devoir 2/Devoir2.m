@@ -1,5 +1,11 @@
 disp("Simulation...");
 function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
+    % Définition de l'énumération d'index XYZ pour vec 3D
+    Index3D = struct('X', 1, 'Y', 2, 'Z', 3);
+
+    % Définition de l'énumération d'index v et r pour le vec q
+    IndexQ = struct('v', 1, 'r', 2);
+
     % Paramètres physiques
     g = 9.8;                      % Accélération gravitationnelle (m/s^2)
     m_balle = 2.74e-3;            % Masse de la balle (kg)
@@ -13,7 +19,14 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     k_visc = 0.5 * rho_air * Cd * A; % Coefficient de frottement visqueux
     S_magnus = 4 * pi * C_M * rho_air * r_balle^3; % Constante pour la force de Magnus
 
-    accParams = AccParams(option, m_balle, g, k_visc, S_magnus, w_init);
+    accParams = struct(...
+        'option', option, ...
+        'm_balle', m_balle, ...
+        'g', g, ...
+        'k_visc', k_visc, ...
+        'S_magnus', S_magnus, ...
+        'w_init', w_init ...
+    );
 
     % Initialisation des variables
     dt = 1e-4;                    % Pas de temps (s)
@@ -31,7 +44,6 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     qsol(IndexQ.v, :, 1) = v_init;       % Vitesse initiale
     qsol(IndexQ.r, :, 1) = r_init;       % Position initiale
 
-
     % Compteur pour l'enregistrement des positions
     n_points = 500;               % Nombre maximum de points à enregistrer
     enregistrement_interval = floor(n_steps / n_points);
@@ -42,15 +54,15 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
     x = [];
     y = [];
     z = [];
-
-    % Simulation du mouvement avec RK4
     qsol_i = [];
     qsol_iNext = [];
+
+    % Simulation du mouvement avec RK4
     for i = 1:n_steps-1
         % Calcul des coefficients k pour la position et la vitesse
 
         qsol_i = qsol(:,:,i);
-        qsol(:,:,i+1) = SEDRK4t0(qsol_i, t(i), dt, 'g', accParams);
+        qsol(:,:,i+1) = SEDRK4t0(qsol_i, t(i), dt, @g_1, accParams);
         qsol_iNext = qsol(:,:,i+1);
 
         % Enregistrement des positions pour le tracé
@@ -116,93 +128,56 @@ function [coup, vbf, ti, x, y, z] = Devoir2(option, r_init, v_init, w_init)
         y(compteur_enregistrement) = qsol_iNext(IndexQ.r, Index3D.Y);
         z(compteur_enregistrement) = qsol_iNext(IndexQ.r, Index3D.Z);
     end
-end
 
-classdef AccParams
-    properties
-        option
-        m_balle
-        g
-        k_visc
-        S_magnus
-        w_init
-    end
-    
-    methods
-        function obj = AccParams(option, m_balle, g, k_visc, S_magnus, w_init)
-            obj.option = option;
-            obj.m_balle = m_balle;
-            obj.g = g;
-            obj.k_visc = k_visc;
-            obj.S_magnus = S_magnus;
-            obj.w_init = w_init;
+
+    % Fonction pour calculer l'accélération
+    function a = acceleration(r, v, option, m_balle, g, k_visc, S_magnus, w_init)
+        % Force gravitationnelle
+        F_grav = [0, 0, -m_balle * g];
+
+        % Force de frottement visqueux (option 2 et 3)
+        if option >= 2
+            F_frott = -k_visc * norm(v) * v;
+        else
+            F_frott = [0, 0, 0];
         end
-    end
-end
 
-% Définition de l'énumération XYZ
-classdef Index3D
-    enumeration
-        X (1)
-        Y (2)
-        Z (3)
-    end
-end
+        % Force de Magnus (option 3)
+        if option == 3
+            F_magnus = S_magnus * cross(w_init, v);
+        else
+            F_magnus = [0, 0, 0];
+        end
 
-% Définition de l'énumération v et r
-classdef IndexQ
-    enumeration
-        v (1)
-        r (2)
-    end
-end
+        % Somme des forces
+        F_totale = F_grav + F_frott + F_magnus;
 
-% Fonction pour calculer l'accélération
-function a = acceleration(r, v, option, m_balle, g, k_visc, S_magnus, w_init)
-    % Force gravitationnelle
-    F_grav = [0, 0, -m_balle * g];
-
-    % Force de frottement visqueux (option 2 et 3)
-    if option >= 2
-        F_frott = -k_visc * norm(v) * v;
-    else
-        F_frott = [0, 0, 0];
+        % Accélération de la balle
+        a = F_totale / m_balle;
     end
 
-    % Force de Magnus (option 3)
-    if option == 3
-        F_magnus = S_magnus * cross(w_init, v);
-    else
-        F_magnus = [0, 0, 0];
-    end
+    % Fonction pour calculer la dérivée de q
+    function res = g_1(q0, t0, customParams)
+        % dv(t)/dt = acceleration(...)
+        % dr(t)/dt = v(t)
+        % q0(1,:) = v(t0)
+        % q0(2,:) = r(t0)
+        % t0 n'est pas utilisé pour la fonction acceleration()
 
-    % Somme des forces
-    F_totale = F_grav + F_frott + F_magnus;
+        option = customParams.option;
+        m_balle = customParams.m_balle;
+        g = customParams.g;
+        k_visc = customParams.k_visc;
+        S_magnus = customParams.S_magnus;
+        w_init = customParams.w_init;
 
-    % Accélération de la balle
-    a = F_totale / m_balle;
-end
+        acc = acceleration(q0(IndexQ.r,:), q0(IndexQ.v,:), option, m_balle, g, k_visc, S_magnus, w_init);
 
-function res = g(q0, t0, accParams)
-    % dv(t)/dt = acceleration(...)
-    % dr(t)/dt = v(t)
-    % q0(1,:) = v(t0)
-    % q0(2,:) = r(t0)
-    % t0 n'est pas utilisé pour la fonction acceleration()
+        res = [acc ; q0(IndexQ.v,:)];
+    end 
+end 
 
-    option = accParams.option;
-    m_balle = accParams.m_balle;
-    g = accParams.g;
-    k_visc = accParams.k_visc;
-    S_magnus = accParams.S_magnus;
-    w_init = accParams.w_init;
-
-    acc = acceleration(q0(IndexQ.r,:), q0(IndexQ.v,:), option, m_balle, g, k_visc, S_magnus, w_init);
-
-    res = [acc, q0(IndexQ.v,:)];
-end  
-
-function qs = SEDRK4t0(q0, t0, DeltaT, g, accParams)
+function qs = SEDRK4t0(q0, t0, DeltaT, g, customParams)
     % Solution des équations différentielles
     % par méthode de RK4 (ndc chapitre 3 p. 44)
     % Équation à résoudre : dq/dt = g(q, t)
@@ -215,13 +190,12 @@ function qs = SEDRK4t0(q0, t0, DeltaT, g, accParams)
     % 		      qui retourne la valeur de g
     % 		      au temps choisi
     
-    k1 = feval(g, q0, t0, accParams);
-    k2 = feval(g, q0 + k1 * DeltaT / 2, t0 + DeltaT / 2, accParams);
-    k3 = feval(g, q0 + k2 * DeltaT / 2, t0 + DeltaT / 2, accParams);
-    k4 = feval(g, q0 + k3 * DeltaT, t0 + DeltaT, accParams);
+    k1 = feval(g, q0, t0, customParams);
+    k2 = feval(g, q0 + k1 * DeltaT / 2, t0 + DeltaT / 2, customParams);
+    k3 = feval(g, q0 + k2 * DeltaT / 2, t0 + DeltaT / 2, customParams);
+    k4 = feval(g, q0 + k3 * DeltaT, t0 + DeltaT, customParams);
     qs = q0 + DeltaT * (k1 + 2 * k2 + 2 * k3 + k4) / 6;
 end 
-
 
 
 %appels de la fonction sur les 4 essais
