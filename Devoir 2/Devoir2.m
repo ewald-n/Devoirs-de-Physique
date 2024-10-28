@@ -239,9 +239,9 @@ for essai = 1:4
 
         fprintf('Option %d:\n', opt);
         fprintf('  Coup: %d (%s)\n', coup, types_coup{coup+1});
-        fprintf('  Vitesse finale (vbf): (%.4f, %.4f, %.4f) m/s\n', vbf);
+        fprintf('  Vitesse finale (vbf): [%.4f, %.4f, %.4f] m/s\n', vbf);
         fprintf('  Temps final (tf): %.4f s\n', ti(end));
-        fprintf('  Position finale (x, y, z): (%.4f, %.4f, %.4f) m\n\n', x(end), y(end), z(end));
+        fprintf('  Position finale (x, y, z): [%.4f, %.4f, %.4f] m\n\n', x(end), y(end), z(end));
 
     end
     fprintf('\n');
