@@ -22,10 +22,10 @@ CoteBloc=8/100;
 %tl = 0.545454;
 
 % Tir 3
-%vbloci = [ 0 -6  3 ];
-%vballei = [ 7 0 0.40834 ];
-%avbloci = [ 0 0 0 ];
-%tl = 0.071429;
+vbloci = [ 0 -6  3 ];
+vballei = [ 7 0 0.40834 ];
+avbloci = [ 0 0 0 ];
+tl = 0.071429;
 
 % Tir 4
 %vbloci = [ 0 -6  3 ];
@@ -34,10 +34,10 @@ CoteBloc=8/100;
 %tl = 0.071429;
 
 % Tir 5
-vbloci = [ -2 -3  5 ];
-vballei = [ 5 2 0.642424 ];
-avbloci = [ -5 -5 0 ];
-tl = 0.6;
+%vbloci = [ -2 -3  5 ];
+%vballei = [ 5 2 0.642424 ];
+%avbloci = [ -5 -5 0 ];
+%tl = 0.6;
 
 % Tir 6
 %vbloci = [ -2 -3  5 ];
