@@ -77,7 +77,14 @@ fprintf('Vitesse angulaire du bloc juste après la collision: ( %8.4f , %8.4f , 
 %
 posbloci=[3 3 1];
 posblocf=[Post(2,nel) Post(3,nel) Post(4,nel)];
+
 hold
+axis equal; % Equal scaling for all axes
+xlabel('X');
+ylabel('Y');
+zlabel('Z');
+grid on; % Add a grid for better reference
+view(3); % Set the default 3D view
 plot3(Post(2,:),Post(3,:),Post(4,:))
 plot3(Post(5,:),Post(6,:),Post(7,:))
 Bloc(CoteBloc,posblocf,avbloci,tfin)
