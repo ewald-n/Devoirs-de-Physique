@@ -19,7 +19,7 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
 
     maskTouche = doesLineIntersectEllipsoidList(poso, vecLumList, cm, [rad, rad, bval]);
-    vecLumList = vecLumList(maskTouche, :);
+    vecLumList = vecLumList(:, maskTouche);
 end
 
 function vec = genererVecteurLineaire(N, valeurMin, valeurMax)    
@@ -32,14 +32,14 @@ end
 
 function matLum = calculerVecDirectionLum(anPol, anAxi)
     % Calcul de la direction de la lumière
-    X = sin(anPol) * cos(anAxi)';
-    X = X(:);
-    Y = sin(anPol) * sin(anAxi)';
-    Y = Y(:);
+    X = sin(anPol)' * cos(anAxi);
+    X = reshape(X,1,[]) ;
+    Y = sin(anPol)' * sin(anAxi);
+    Y = reshape(Y,1,[]) ;
     Z = cos(anPol);
-    Z = repmat(Z, size(anAxi), 1);
+    Z = repmat(Z, 1, size(anAxi));
 
-    matLum = [X, Y, Z];
+    matLum = [X; Y; Z];
 end
 
 % IA
@@ -86,8 +86,8 @@ function intersects = doesLineIntersectEllipsoidList(linePoint, lineDirList, ell
     c = ellipsoidRadii(3);
 
     % Coefficients de l'équation quadratique
-    A = (lineDirList(:, 1).^2 / a^2) + (lineDirList(:, 2).^2 / b^2) + (lineDirList(:, 3).^2 / c^2);
-    B = 2 * ((p(1) * lineDirList(:, 1) / a^2) + (p(2) * lineDirList(:, 2) / b^2) + (p(3) * lineDirList(:, 3) / c^2));
+    A = (lineDirList(1, :).^2 / a^2) + (lineDirList(2, :).^2 / b^2) + (lineDirList(3, :).^2 / c^2);
+    B = 2 * ((p(1) * lineDirList(1, :) / a^2) + (p(2) * lineDirList(2, :) / b^2) + (p(3) * lineDirList(3, :) / c^2));
     C = (p(1)^2 / a^2) + (p(2)^2 / b^2) + (p(3)^2 / c^2) - 1;
 
     % Discriminant de l'équation quadratique
