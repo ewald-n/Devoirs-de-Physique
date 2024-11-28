@@ -8,11 +8,18 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     ANG_AZIMUTAL_MIN = 0;
     ANG_AZIMUTAL_MAX = 90;
 
+    cm   = [4,4,11]; %--- centre de masse ellipsoïde
+    rad    = 3; %--- x^2/(rad^2), y^2/(rad^2)
+    bval   = 9; %--- z^2/(bval^2)
 
-    anPol = genererVecteurLineaire(N, ANG_POLAIRE_MIN, ANG_POLAIRE_MAX);
-    anAxi = genererVecteurLineaire(M, ANG_AZIMUTAL_MIN, ANG_AZIMUTAL_MAX);
 
-    vecLum = calculerVecDirectionLum(anPol, anAxi);
+    anPolList = genererVecteurLineaire(N, ANG_POLAIRE_MIN, ANG_POLAIRE_MAX);
+    anAxiList = genererVecteurLineaire(M, ANG_AZIMUTAL_MIN, ANG_AZIMUTAL_MAX);
+
+    vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
+
+    maskTouche = doesLineIntersectEllipsoidList(poso, vecLumList, cm, [rad, rad, bval]);
+    vecLumList = vecLumList(maskTouche, :);
 end
 
 function vec = genererVecteurLineaire(N, valeurMin, valeurMax)    
@@ -23,7 +30,69 @@ function vec = genererVecteurLineaire(N, valeurMin, valeurMax)
     vec = valeurMin + increment * (1:2:N*2);
 end
 
-function vecLum = calculerVecDirectionLum(anPol, anAxi)
+function matLum = calculerVecDirectionLum(anPol, anAxi)
     % Calcul de la direction de la lumière
-    vecLum = [sin(anPol) .* cos(anAxi); sin(anPol) .* sin(anAxi); cos(anPol)];
+    X = sin(anPol) * cos(anAxi)';
+    X = X(:);
+    Y = sin(anPol) * sin(anAxi)';
+    Y = Y(:);
+    Z = cos(anPol);
+    Z = repmat(Z, size(anAxi), 1);
+
+    matLum = [X, Y, Z];
+end
+
+% IA
+function intersects = doesLineIntersectEllipsoid(linePoint, lineDir, ellipsoidCenter, ellipsoidRadii)
+    % Cette fonction détermine si une droite traverse un ellipsoïde.
+    % linePoint: un point sur la droite [x0, y0, z0]
+    % lineDir: vecteur directionnel de la droite [dx, dy, dz]
+    % ellipsoidCenter: centre de l'ellipsoïde [cx, cy, cz]
+    % ellipsoidRadii: rayons de l'ellipsoïde [rx, ry, rz]
+
+    % Déplacer la droite pour que l'ellipsoïde soit centré à l'origine
+    p = linePoint - ellipsoidCenter;
+
+    % Paramètres de l'ellipsoïde
+    a = ellipsoidRadii(1);
+    b = ellipsoidRadii(2);
+    c = ellipsoidRadii(3);
+
+    % Coefficients de l'équation quadratique
+    A = (lineDir(1)^2 / a^2) + (lineDir(2)^2 / b^2) + (lineDir(3)^2 / c^2);
+    B = 2 * ((p(1) * lineDir(1) / a^2) + (p(2) * lineDir(2) / b^2) + (p(3) * lineDir(3) / c^2));
+    C = (p(1)^2 / a^2) + (p(2)^2 / b^2) + (p(3)^2 / c^2) - 1;
+
+    % Discriminant de l'équation quadratique
+    discriminant = B^2 - 4 * A * C;
+
+    % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
+    intersects = discriminant >= 0;
+end
+
+function intersects = doesLineIntersectEllipsoidList(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
+    % Cette fonction détermine si une droite traverse un ellipsoïde.
+    % linePoint: un point sur la droite [x0, y0, z0]
+    % lineDirList: liste de vecteurs directionnels de la droite [dx, dy, dz]
+    % ellipsoidCenter: centre de l'ellipsoïde [cx, cy, cz]
+    % ellipsoidRadii: rayons de l'ellipsoïde [rx, ry, rz]
+
+    % Déplacer la droite pour que l'ellipsoïde soit centré à l'origine
+    p = linePoint - ellipsoidCenter;
+
+    % Paramètres de l'ellipsoïde
+    a = ellipsoidRadii(1);
+    b = ellipsoidRadii(2);
+    c = ellipsoidRadii(3);
+
+    % Coefficients de l'équation quadratique
+    A = (lineDirList(:, 1).^2 / a^2) + (lineDirList(:, 2).^2 / b^2) + (lineDirList(:, 3).^2 / c^2);
+    B = 2 * ((p(1) * lineDirList(:, 1) / a^2) + (p(2) * lineDirList(:, 2) / b^2) + (p(3) * lineDirList(:, 3) / c^2));
+    C = (p(1)^2 / a^2) + (p(2)^2 / b^2) + (p(3)^2 / c^2) - 1;
+
+    % Discriminant de l'équation quadratique
+    discriminants = B.^2 - 4 * A * C;
+
+    % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
+    intersects = discriminants >= 0;
 end
