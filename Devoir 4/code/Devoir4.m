@@ -13,14 +13,27 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     rad    = 3; %--- x^2/(rad^2), y^2/(rad^2)
     bval   = 9; %--- z^2/(bval^2)
 
+    dirPosVersCentre = cm - poso;
+    [angPolaireCentre, angAzimutalCentre] = calculerAnglesCentre(dirPosVersCentre);
 
-    anPolList = genererVecteurLineaire(N, ANG_POLAIRE_MIN, ANG_POLAIRE_MAX);
-    anAxiList = genererVecteurLineaire(M, ANG_AZIMUTAL_MIN, ANG_AZIMUTAL_MAX);
+    anPolList = genererVecteurLineaire(N, ANG_POLAIRE_MIN + angPolaireCentre, ANG_POLAIRE_MAX + angPolaireCentre);
+    anAxiList = genererVecteurLineaire(M, ANG_AZIMUTAL_MIN + angAzimutalCentre, ANG_AZIMUTAL_MAX + angAzimutalCentre);
 
     vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
 
     rayonsLumTouchant = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
     
+end
+
+function [anPol; anAxi] = calculerAnglesCentre(dirPosVersCentre)
+    % Cette fonction calcule l'angle polaire et azimutal du vecteur
+    % dirPosVersCentre par rapport à l'axe z.
+
+    % Calcul de l'angle polaire
+    anPol = acos(dirPosVersCentre(3, :));
+
+    % Calcul de l'angle azimutal
+    anAxi = atan2(dirPosVersCentre(2, :), dirPosVersCentre(1, :));
 end
 
 function vec = genererVecteurLineaire(N, valeurMin, valeurMax)    
