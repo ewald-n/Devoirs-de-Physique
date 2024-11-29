@@ -1,5 +1,6 @@
 function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
-    % TODO
+    poso = poso(:);
+
     N = 1000;
     M = 1000;
 
@@ -18,8 +19,8 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
 
     vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
 
-    maskTouche = doesLineIntersectEllipsoidList(poso, vecLumList, cm, [rad, rad, bval]);
-    vecLumList = vecLumList(:, maskTouche);
+    rayonsLumTouchant = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
+    
 end
 
 function vec = genererVecteurLineaire(N, valeurMin, valeurMax)    
@@ -70,10 +71,10 @@ function intersects = doesLineIntersectEllipsoid(linePoint, lineDir, ellipsoidCe
     intersects = discriminant >= 0;
 end
 
-function intersects = doesLineIntersectEllipsoidList(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
+function lineDirList = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
     % Cette fonction détermine si une droite traverse un ellipsoïde.
     % linePoint: un point sur la droite [x0, y0, z0]
-    % lineDirList: liste de vecteurs directionnels de la droite [dx, dy, dz]
+    % : liste de vecteurs directionnels de la droite [dx, dy, dz]
     % ellipsoidCenter: centre de l'ellipsoïde [cx, cy, cz]
     % ellipsoidRadii: rayons de l'ellipsoïde [rx, ry, rz]
 
@@ -94,5 +95,31 @@ function intersects = doesLineIntersectEllipsoidList(linePoint, lineDirList, ell
     discriminants = B.^2 - 4 * A * C;
 
     % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
-    intersects = discriminants >= 0;
+    maskTouche = discriminants >= 0;
+
+    lineDirList = lineDirList(:, maskTouche);
+    A = A(maskTouche);
+    B = B(maskTouche);
+    discriminants = discriminants(maskTouche);
+
+    % Calculer les distances d'intersection d1 et d2
+    d1 = (-B + sqrt(discriminant)) ./ (2 * A);
+    d2 = (-B - sqrt(discriminant)) ./ (2 * A);
+
+    % Choisir la plus petite d positive
+    d = min(d1, d2);
+    % if t < 0
+    %     t = max(t1, t2);
+    % end
+
+    % if t < 0
+    %     intersects = false;
+    %     intersectionPoint = [];
+    %     return;
+    % end
+
+    % Calculer le point d'intersection
+    intersectionPoint = linePoint + d .* lineDirList;
+    lineDirList = [lineDirList; intersectionPoint];
+
 end
