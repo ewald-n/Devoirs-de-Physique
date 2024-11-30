@@ -13,6 +13,8 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     rad    = 3; %--- x^2/(rad^2), y^2/(rad^2)
     bval   = 9; %--- z^2/(bval^2)
 
+    finalResults = [];
+
     dirPosVersCentre = cm - poso;
     [angPolaireCentre, angAzimutalCentre] = calculerAnglesCentre(dirPosVersCentre);
 
@@ -21,7 +23,7 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
 
     vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
 
-    [vecLumList, ptIntersection] = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
+    [vecLumList, ptIntersection, distancesParcourues] = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
     normales = calculerNormalesEllipsoide(ptIntersection, cm, [rad, rad, bval]); % TODO: unitaires?
 
     vecJ = cross(vecLumList, normales);
@@ -34,15 +36,38 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
 
     st = st(maskRefraction);
     normales = normales(:, maskRefraction);
+    vecLumList = vecLumList(:, maskRefraction);
+    distancesParcourues = distancesParcourues(maskRefraction);
     vecK = vecK(:, maskRefraction);
     % vecJ = vecJ(:, maskRefraction);
-    vecLumList = vecLumList(:, maskRefraction);
+
+    finalResults = zeros(3, size(st));
+    nfinalResults = 0;
+    face = zeros(1, size(st));
 
     ut = -normales .* sqrt(1 - st.^2) + vecK .* st;
+    ut = ut ./ vecnorm(ut); % TODO: necessaire unitaires?
 
+    [areIntersecting, distancesParcouruesTouchee, facesTemp] = doRaysIntersectPrism(poso, ut, distancesParcourues);
+    ut = ut(:, areIntersecting);
 
+    finalResults(:, (nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = vecLumList(:, areIntersecting) .* distancesParcouruesTouchee + poso;
+    nfinalResults = nfinalResults + size(distancesParcouruesTouchee);
+    face((nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = facesTemp;
 
     
+
+
+    % TODO: reflexion max 100 fois...
+    % ...
+    % ...
+
+
+
+    xi = finalResults(1, 1:nfinalResults);
+    yi = finalResults(2, 1:nfinalResults);
+    zi = finalResults(3, 1:nfinalResults);
+    face = face(1:nfinalResults);
 end
 
 function [anPol; anAxi] = calculerAnglesCentre(dirPosVersCentre)
@@ -104,7 +129,7 @@ function intersects = doesLineIntersectEllipsoid(linePoint, lineDir, ellipsoidCe
     intersects = discriminant >= 0;
 end
 
-function [lineDirList, intersectionPoint] = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
+function [lineDirList, intersectionPoint, d] = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
     % Cette fonction détermine si une droite traverse un ellipsoïde.
     % linePoint: un point sur la droite [x0, y0, z0]
     % lineDirList: liste de vecteurs directionnels de la droite [dx, dy, dz]
@@ -158,4 +183,36 @@ end
 function vecNormale = calculerNormalesEllipsoide(ptIntersection, ellipsoidCenter, ellipsoidRadii)
     % Cette fonction calcule la normale à un ellipsoïde à un point donné.    
     vecNormale = (ptIntersection - ellipsoidCenter) ./ (ellipsoidRadii.^2);
+end
+
+% IA
+function [maskIntersect, distancesParcouruesTouchee, facesTouchees] = doRaysIntersectPrism(raysOrigin, raysDir, distancesParcourues)
+    % Cette fonction détermine si un rayon touche un prisme rectangulaire.
+    % raysOrigin: origine du rayon [x0, y0, z0]
+    % raysDir: direction du rayon [dx, dy, dz]
+    % intersects: booléen indiquant si le rayon intersecte le prisme
+
+    LAME = [3 4; 3 5; 12 17];
+
+    % Initialiser les paramètres tmin et tmax
+    tmin = (LAME(:, 1) - raysOrigin) ./ raysDir;
+    tmax = (LAME(:, 2) - raysOrigin) ./ raysDir;
+
+    % Assurer que tmin est toujours le plus petit et tmax le plus grand
+    t1 = min(tmin, tmax);
+    t2 = max(tmin, tmax);
+
+    % Trouver les plus grandes valeurs de t1 et les plus petites valeurs de t2
+    t_enter = max(t1);
+    t_exit = min(t2);
+
+    % Le rayon intersecte le prisme si t_enter <= t_exit et t_enter >= 0
+    maskIntersect = (t_enter <= t_exit) && (t_enter >= 0);
+
+
+    % Calculer les distances parcourues
+    distancesParcouruesTouchee = distancesParcourues(:, maskIntersect) + t_enter;
+
+    % Calculer les faces touchées
+    facesTouchees = zeros(1, size(distancesParcouruesTouchee));
 end
