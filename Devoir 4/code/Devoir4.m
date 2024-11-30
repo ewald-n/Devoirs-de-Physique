@@ -38,6 +38,7 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     normales = normales(:, maskRefraction);
     vecLumList = vecLumList(:, maskRefraction);
     distancesParcourues = distancesParcourues(maskRefraction);
+    ptIntersection = ptIntersection(:, maskRefraction);
     vecK = vecK(:, maskRefraction);
     % vecJ = vecJ(:, maskRefraction);
 
@@ -49,14 +50,52 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
     ut = ut ./ vecnorm(ut); % TODO: necessaire unitaires?
 
     [areIntersecting, distancesParcouruesTouchee, facesTemp] = doRaysIntersectPrism(poso, ut, distancesParcourues);
-    ut = ut(:, areIntersecting);
 
     finalResults(:, (nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = vecLumList(:, areIntersecting) .* distancesParcouruesTouchee + poso;
-    nfinalResults = nfinalResults + size(distancesParcouruesTouchee);
     face((nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = facesTemp;
-
+    nfinalResults = nfinalResults + size(distancesParcouruesTouchee);
     
+    ui = ut(:, ~areIntersecting);
 
+    nReflexInterne = 0;
+    while nReflexInterne < 100
+        vecLumList = vecLumList(:, ~areIntersecting);
+        distancesParcourues = distancesParcourues(~areIntersecting);
+        ptIntersection = ptIntersection(:, ~areIntersecting);
+
+        [_, ptIntersection, distancesParcouruesTemp] = findLinesIntersectEllipsoid(ptIntersection, ui, cm, [rad, rad, bval]);
+        distancesParcourues = distancesParcourues + distancesParcouruesTemp;
+        normales = -calculerNormalesEllipsoide(ptIntersection, cm, [rad, rad, bval]); % TODO: unitaires?
+
+        vecJ = cross(vecLumList, normales);
+        vecJ = vecJ ./ vecnorm(vecJ);
+
+        vecK = cross(normales, vecJ);
+
+        st = nout / nin * dot(vecLumList, vecK);
+        maskReflexion = st > 1;
+
+        ui = ui(:, maskReflexion);
+        normales = normales(:, maskReflexion);
+        ptIntersection = ptIntersection(:, maskReflexion);
+        distancesParcourues = distancesParcourues(maskReflexion);
+
+        if isempty(ui)
+            break;
+        else
+            nReflexInterne = nReflexInterne + 1;
+        end
+
+        ur = ui - 2 * normales .* dot(ui, normales);
+
+        [areIntersecting, distancesParcouruesTouchee, facesTemp] = doRaysIntersectPrism(ptIntersection, ur, distancesParcourues);
+
+        finalResults(:, (nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = vecLumList(:, areIntersecting) .* distancesParcouruesTouchee + poso;
+        face((nfinalResults + 1):(nfinalResults + size(distancesParcouruesTouchee))) = facesTemp;
+        nfinalResults = nfinalResults + size(distancesParcouruesTouchee);
+
+        ui = ur(:, ~areIntersecting);
+    end
 
     % TODO: reflexion max 100 fois...
     % ...
@@ -129,7 +168,7 @@ function intersects = doesLineIntersectEllipsoid(linePoint, lineDir, ellipsoidCe
     intersects = discriminant >= 0;
 end
 
-function [lineDirList, intersectionPoint, d] = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
+function [lineDirList, intersectionPoint, d] = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii, isOutside)
     % Cette fonction détermine si une droite traverse un ellipsoïde.
     % linePoint: un point sur la droite [x0, y0, z0]
     % lineDirList: liste de vecteurs directionnels de la droite [dx, dy, dz]
@@ -152,29 +191,27 @@ function [lineDirList, intersectionPoint, d] = findLinesIntersectEllipsoid(lineP
     % Discriminant de l'équation quadratique
     discriminants = B.^2 - 4 * A * C;
 
-    % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
-    maskTouche = discriminants >= 0;
+    if isOutside
+        % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
+        maskTouche = discriminants >= 0;
 
-    lineDirList = lineDirList(:, maskTouche);
-    A = A(maskTouche);
-    B = B(maskTouche);
-    discriminants = discriminants(maskTouche);
+        lineDirList = lineDirList(:, maskTouche);
+        A = A(maskTouche);
+        B = B(maskTouche);
+        discriminants = discriminants(maskTouche); 
+    end
 
     % Calculer les distances d'intersection d1 et d2
     d1 = (-B + sqrt(discriminant)) ./ (2 * A);
     d2 = (-B - sqrt(discriminant)) ./ (2 * A);
 
-    % Choisir la plus petite d positive
-    d = min(d1, d2);
-    % if t < 0
-    %     t = max(t1, t2);
-    % end
-
-    % if t < 0
-    %     intersects = false;
-    %     intersectionPoint = [];
-    %     return;
-    % end
+    if isOutside
+        % Choisir la plus petite d positive
+        d = min(d1, d2); 
+    else
+        % Choisir la plus grande d positive
+        d = max(d1, d2);
+    end
 
     % Calculer le point d'intersection
     intersectionPoint = linePoint + d .* lineDirList;
