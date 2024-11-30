@@ -21,7 +21,27 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
 
     vecLumList = calculerVecDirectionLum(anPolList, anAxiList);
 
-    rayonsLumTouchant = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
+    [vecLumList, ptIntersection] = findLinesIntersectEllipsoid(poso, vecLumList, cm, [rad, rad, bval]);
+    normales = calculerNormalesEllipsoide(ptIntersection, cm, [rad, rad, bval]); % TODO: unitaires?
+
+    vecJ = cross(vecLumList, normales);
+    vecJ = vecJ ./ vecnorm(vecJ);
+
+    vecK = cross(normales, vecJ);
+
+    st = nin / nout * dot(vecLumList, vecK);
+    maskRefraction = st < 1;
+
+    st = st(maskRefraction);
+    normales = normales(:, maskRefraction);
+    vecK = vecK(:, maskRefraction);
+    % vecJ = vecJ(:, maskRefraction);
+    vecLumList = vecLumList(:, maskRefraction);
+
+    ut = -normales .* sqrt(1 - st.^2) + vecK .* st;
+
+
+
     
 end
 
@@ -84,10 +104,10 @@ function intersects = doesLineIntersectEllipsoid(linePoint, lineDir, ellipsoidCe
     intersects = discriminant >= 0;
 end
 
-function lineDirList = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
+function [lineDirList, intersectionPoint] = findLinesIntersectEllipsoid(linePoint, lineDirList, ellipsoidCenter, ellipsoidRadii)
     % Cette fonction détermine si une droite traverse un ellipsoïde.
     % linePoint: un point sur la droite [x0, y0, z0]
-    % : liste de vecteurs directionnels de la droite [dx, dy, dz]
+    % lineDirList: liste de vecteurs directionnels de la droite [dx, dy, dz]
     % ellipsoidCenter: centre de l'ellipsoïde [cx, cy, cz]
     % ellipsoidRadii: rayons de l'ellipsoïde [rx, ry, rz]
 
@@ -133,6 +153,9 @@ function lineDirList = findLinesIntersectEllipsoid(linePoint, lineDirList, ellip
 
     % Calculer le point d'intersection
     intersectionPoint = linePoint + d .* lineDirList;
-    lineDirList = [lineDirList; intersectionPoint];
+end
 
+function vecNormale = calculerNormalesEllipsoide(ptIntersection, ellipsoidCenter, ellipsoidRadii)
+    % Cette fonction calcule la normale à un ellipsoïde à un point donné.    
+    vecNormale = (ptIntersection - ellipsoidCenter) ./ (ellipsoidRadii.^2);
 end
