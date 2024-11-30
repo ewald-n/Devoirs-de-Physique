@@ -199,11 +199,11 @@ function [maskIntersect, distancesParcouruesTouchee, facesTouchees] = doRaysInte
     tmax = (LAME(:, 2) - raysOrigin) ./ raysDir;
 
     % Assurer que tmin est toujours le plus petit et tmax le plus grand
-    t1 = min(tmin, tmax);
+    [t1, indexMin] = min(tmin, tmax);
     t2 = max(tmin, tmax);
 
     % Trouver les plus grandes valeurs de t1 et les plus petites valeurs de t2
-    t_enter = max(t1);
+    [t_enter, indexDim] = max(t1);
     t_exit = min(t2);
 
     % Le rayon intersecte le prisme si t_enter <= t_exit et t_enter >= 0
@@ -211,8 +211,8 @@ function [maskIntersect, distancesParcouruesTouchee, facesTouchees] = doRaysInte
 
 
     % Calculer les distances parcourues
-    distancesParcouruesTouchee = distancesParcourues(:, maskIntersect) + t_enter;
+    distancesParcouruesTouchee = distancesParcourues(:, maskIntersect) + t_enter(maskIntersect);
 
     % Calculer les faces touchées
-    facesTouchees = zeros(1, size(distancesParcouruesTouchee));
+    facesTouchees = indexDim(maskIntersect) + 2 * (indexMin(maskIntersect) - 1);
 end
