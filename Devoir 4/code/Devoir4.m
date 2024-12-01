@@ -93,18 +93,14 @@ function [xi, yi, zi, face] = Devoir4(nout, nin, poso)
 
         [areIntersecting, distancesParcouruesTouchee, facesTemp] = doRaysIntersectPrism(ptIntersection, ur, distancesParcourues);
 
-        finalResults(:, (nfinalResults + 1):(nfinalResults + length(distancesParcouruesTouchee))) = vecLumList(:, areIntersecting) .* distancesParcouruesTouchee + poso;
-        face((nfinalResults + 1):(nfinalResults + length(distancesParcouruesTouchee))) = facesTemp;
-        nfinalResults = nfinalResults + length(distancesParcouruesTouchee);
+        if ~isempty(distancesParcouruesTouchee)
+            finalResults(:, (nfinalResults + 1):(nfinalResults + length(distancesParcouruesTouchee))) = vecLumList(:, areIntersecting) .* distancesParcouruesTouchee + poso;
+            face((nfinalResults + 1):(nfinalResults + length(distancesParcouruesTouchee))) = facesTemp;
+            nfinalResults = nfinalResults + length(distancesParcouruesTouchee);
+        end
 
         ui = ur(:, ~areIntersecting);
     end
-
-    % TODO: reflexion max 100 fois...
-    % ...
-    % ...
-
-
 
     xi = finalResults(1, 1:nfinalResults);
     yi = finalResults(2, 1:nfinalResults);
@@ -192,11 +188,11 @@ function [lineDirList, intersectionPoint, d] = findLinesIntersectEllipsoid(lineP
 
     % Coefficients de l'équation quadratique
     A = (lineDirList(1, :).^2 / a^2) + (lineDirList(2, :).^2 / b^2) + (lineDirList(3, :).^2 / c^2);
-    B = 2 * ((p(1) * lineDirList(1, :) / a^2) + (p(2) * lineDirList(2, :) / b^2) + (p(3) * lineDirList(3, :) / c^2));
-    C = (p(1)^2 / a^2) + (p(2)^2 / b^2) + (p(3)^2 / c^2) - 1;
+    B = 2 * ((p(1, :) .* lineDirList(1, :) / a^2) + (p(2, :) .* lineDirList(2, :) / b^2) + (p(3, :) .* lineDirList(3, :) / c^2));
+    C = (p(1, :).^2 / a^2) + (p(2, :).^2 / b^2) + (p(3, :).^2 / c^2) - 1;
 
     % Discriminant de l'équation quadratique
-    discriminants = B.^2 - 4 * A * C;
+    discriminants = B.^2 - 4 * A .* C;
 
     if isOutside
         % La droite traverse l'ellipsoïde si le discriminant est positif ou nul
